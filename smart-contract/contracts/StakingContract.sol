@@ -1,5 +1,5 @@
 // SPDX-License-Identifier:MIT
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -12,18 +12,35 @@ contract StakingContract is ERC20, Ownable {
      // an array of all the stakeholders
     address[] internal stakeholders;
 
+    event RewardsDurationUpdated(uint256 newDuration);
+
+    uint public rewardPerTokenStored;
+
+    mapping(address => uint) public userRewardPerTokenPaid;
+
+
     uint256 public unitsOneEthCanBuy  = 10;
     address public tokenOwner;
     uint private _totalSupply;
-    uint public weeksToClaim = 1 weeks;
+    uint256 public rewardsDuration = 7 days;
+    uint256 public rewardRate = 0;
     uint public tokenPrice = 1;
+    uint lastStakeTimestamp = 1 weeks;
+    uint rewardsPeriod = 86400 * 7;
+    uint gracePeriod = 86400;
+    uint256 public lastUpdateTime;
+    uint256 public periodFinish = 0;
+
+    uint durationPassed = block.timestamp - lastStakeTimestamp;
+    uint weeksPassed = durationPassed / rewardsPeriod;
+    uint timeFromLastClaimPeriod = durationPassed % rewardsPeriod;
 
      // the stakes for each stakeholder
     mapping(address => uint256) internal stakes;
 
      // the total number of rewards for each stakeholder
     mapping(address => uint256) internal rewards;
-    // mapping(address => uint256) private balanceOf;
+    mapping(address => uint256) private _balances;
 
     /**
      * @notice The constructor for the Staking Token.
@@ -163,14 +180,21 @@ contract StakingContract is ERC20, Ownable {
        rewards[msg.sender] = 0;
        _mint(msg.sender, reward);
    }
-
-   function claimReward(uint _amount) public {
-       require(block.timestamp > weeksToClaim , "too late");
-        uint reward = rewards[msg.sender];
-        rewards[msg.sender] = 0;
-        rewards[msg.sender] += _amount;
-        _mint(msg.sender, reward);
+   function claimReward() external payable {
+       if (block.timestamp > timeFromLastClaimPeriod) {
+            uint256 reward = rewards[msg.sender];
+            uint256 balance = balanceOf(msg.sender);
+            balance += reward;
+       }
    }
+    function setRewardsDuration(uint256 _rewardsDuration) external onlyOwner {
+        require(
+            block.timestamp > periodFinish,
+            "Previous rewards period must be complete before changing the duration for the new period"
+        );
+        rewardsDuration = _rewardsDuration;
+        emit RewardsDurationUpdated(rewardsDuration);
+    }
 
     // mint token and modify token
     function buyToken() external payable {        
