@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 async function main() {
     const stakingContract = await ethers.getContractFactory("StakingContract");
     // we deploy the contract
-    const deployStakingContract = await stakingContract.deploy("0x1C6870Ea91BE123db620F59C0375Ddc5B1c9B927", 10000);
+    const deployStakingContract = await stakingContract.deploy("0x1C6870Ea91BE123db620F59C0375Ddc5B1c9B927","0x894c2ECD33720D36DE0f2678d2E536DCd4faAB54");
     await deployStakingContract.deployed();
 
     // print the address of the deployed contract

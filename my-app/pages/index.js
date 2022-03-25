@@ -1,29 +1,26 @@
-  
-import Head from "next/head";
-import styles from "../styles/Home.module.css";
+// jshint esversion: 9
+import Head from 'next/head';
+import styles from '../styles/Home.module.css';
 import Web3Modal from "web3modal";
 import { providers, Contract } from "ethers";
 import { useEffect, useRef, useState } from "react";
 import {abi, CONTRACT_ADDRESS} from "../constants";
-import styles from '../styles/Home.module.css'
 
 export default function Home() {
 
     // walletConnected keeps track of whether the user's wallet is connected or not
     const [walletConnected, setWalletConnected] = useState(false);
     // loading is set to true when we are waiting for a transaction to get mined
-    const [loading, setLoading] = useState(false);
-    // tokensToBeClaimed keeps track of the number of tokens that can be claimed
-    // based on the Crypto Dev NFT's held by the user for which they havent claimed the tokens
-    const [rewardToBeClaimed, setRewardToBeClaimed] = useState(zero);
-    // balanceOfCryptoDevTokens keeps track of number of Crypto Dev tokens owned by an address
-    const [balanceOfToken, setBalanceOfToken] = useState(zero);
+    // const [loading, setLoading] = useState(false);
+    // const [rewardToBeClaimed, setRewardToBeClaimed] = useState(zero);
+    // balanceOfCryptoDevTokens keeps track of number of owned by an address
+    const [balanceOfToken, setBalanceOfToken] = useState(0);
     // amount of the tokens that the user wants to mint
-    const [tokenAmount, setTokenAmount] = useState(zero);
-    // amount of the tokens that the user wants to mint
-    const [tokenStaked, setTokenStaked] = useState(zero);
+    const [stakeAmount, setStakeAmount] = useState(0);
+    // amount of the tokens that the user wants to stake
+    const [tokenStaked, setTokenStaked] = useState(0);
     // tokensMinted is the total number of tokens that have been minted till now out of 10000(max total supply)
-    const [tokensMinted, setTokensMinted] = useState(zero);
+    // const [tokensMinted, setTokensMinted] = useState(zero);
     // Create a reference to the Web3 Modal (used for connecting to Metamask) which persists as long as the page is open
     const web3ModalRef = useRef();
 
@@ -37,16 +34,73 @@ export default function Home() {
       await getProviderOrSigner();
       setWalletConnected(true);
 
-      checkIfAddressInWhitelist();
-      getNumberOfWhitelisted();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const getBalanceOfUserToken = async () => {
+    try {
+
+      const provider = await getProviderOrSigner();
+      // Create an instace of token contract
+      const tokenContract = new Contract(
+        CONTRACT_ADDRESS,
+        abi,
+        provider
+      );
+      // We will get the signer now to extract the address of the currently connected MetaMask account
+      const signer = await getProviderOrSigner(true);
+      // Get the address associated to the signer which is connected to  MetaMask
+      const address = await signer.getAddress();
+      // call the balanceOf from the token contract to get the number of tokens held by the user
+      const balance = await tokenContract.balanceOf(address);
+      // balance is already a big number, so we dont need to convert it before setting it
+      setBalanceOfToken(balance);
+    } catch (err) {
+      console.error(err);
+      setBalanceOfToken(zero);
+    }
+  };
+
+  const getTotalTokensStaked = async () => {
+    try {
+      // Get the provider from web3Modal, which in our case is MetaMask
+      // No need for the Signer here, as we are only reading state from the blockchain
+      const provider = await getProviderOrSigner();
+      // Create an instance of token contract
+      const tokenContract = new Contract(
+        CONTRACT_ADDRESS,
+        abi,
+        provider
+      );
+      // Get all the tokens that have been minted
+      const _tokensMinted = await tokenContract.totalSupply();
+      setTokensStaked(_tokensMinted);
     } catch (err) {
       console.error(err);
     }
   };
 
-    // useEffects are used to react to changes in state of the website
-  // The array at the end of function call represents what state changes will trigger this effect
-  // In this case, whenever the value of `walletConnected` changes - this effect will be called
+  const getProviderOrSigner = async (needSigner = false) => {
+    // Connect to Metamask
+    // Since we store `web3Modal` as a reference, we need to access the `current` value to get access to the underlying object
+    const provider = await web3ModalRef.current.connect();
+    const web3Provider = new providers.Web3Provider(provider);
+
+    // If user is not connected to the Rinkeby network, let them know and throw an error
+    const { chainId } = await web3Provider.getNetwork();
+    if (chainId !== 4) {
+      window.alert("Change the network to Rinkeby");
+      throw new Error("Change network to Rinkeby");
+    }
+
+    if (needSigner) {
+      const signer = web3Provider.getSigner();
+      return signer;
+    }
+    return web3Provider;
+  };
+
   useEffect(() => {
     // if wallet is not connected, create a new instance of Web3Modal and connect the MetaMask wallet
     if (!walletConnected) {
@@ -60,37 +114,44 @@ export default function Home() {
       connectWallet();
     }
   }, [walletConnected]);
-  
+
   return (
     <div className={styles.container}>
       <Head>
-        <title>Staking App</title>
-        <meta name="Staking App" content="Simple UI for a Staking App" />
+        <title>Create Next App</title>
+        <meta name="description" content="Generated by create next app" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <div>
+      <div className={styles.main}>
         <div className={styles.cardContainer}>
           <div className={styles.card}>
-            <h2>1000ETH</h2>
+            <h2>{balanceOfToken}</h2>
             <p className={styles.cardTitle}>Balance</p>
           </div>
           <div className={styles.card}>
-            <h2>10ETH</h2>
+            <h2>1000ETH</h2>
             <p className={styles.cardTitle}>Total Staked</p>
           </div>
         </div>
-        <div className={styles.content}>
-          <div className={styles.stakeContent}>
-            <input type="number" placeholder='amount to transfer' className={styles.input} />
-            <button type='submit' className={styles.button}>Transfer</button>
+        {walletConnected ? (
+          <div className={styles.content}>
+            <div className={styles.stakeContent}>
+              <input type="number" placeholder='amount to transfer' className={styles.input} />
+              <button type='submit' className={styles.button}>Transfer</button>
+            </div>
+            <div className={styles.stakeContent}>
+              <input type="number" placeholder='amount to stake' className={styles.input} />
+              <button type='submit'className={styles.button}>Stake</button>
+            </div>
+            <div className={styles.stakeContent}>
+              <input type="number" placeholder='amount to stake' className={styles.input} />
+              <button type='submit'className={styles.button}>Unstake</button>
+            </div>
           </div>
-          <div className={styles.stakeContent}>
-            <input type="number" placeholder='amount to stake' className={styles.input} />
-            <button type='submit'className={styles.button}>Stake</button>
-          </div>
-        </div>
+        ): (
+          <button className={styles.button}>Connect Wallet</button>
+        )}
       </div>
-
     </div>
   )
 }

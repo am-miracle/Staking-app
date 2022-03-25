@@ -1,20 +1,39 @@
-export const CONTRACT_ADDRESS = "0x1caAFC60cC3D913723e5F65D1F3973880b28f867";
+export const CONTRACT_ADDRESS = "0x3C9d534Fe5505d986B269Afd1F0752d33F623Fed"
 export const abi = [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "_owner",
+          "name": "_depositToken",
           "type": "address"
         },
         {
-          "internalType": "uint256",
-          "name": "_supply",
-          "type": "uint256"
+          "internalType": "address",
+          "name": "_rewardToken",
+          "type": "address"
         }
       ],
       "stateMutability": "payable",
       "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lengthInDays",
+          "type": "uint256"
+        }
+      ],
+      "name": "AddRewards",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -47,6 +66,44 @@ export const abi = [
         {
           "indexed": true,
           "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ClaimReward",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Deposit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
           "name": "previousOwner",
           "type": "address"
         },
@@ -58,6 +115,19 @@ export const abi = [
         }
       ],
       "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Skim",
       "type": "event"
     },
     {
@@ -86,14 +156,51 @@ export const abi = [
       "type": "event"
     },
     {
+      "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
           "internalType": "address",
-          "name": "_stakeholder",
+          "name": "user",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
         }
       ],
-      "name": "addStakeholder",
+      "name": "Withdraw",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "accumulatedRewardPerShare",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_rewardsAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_lengthInDays",
+          "type": "uint256"
+        }
+      ],
+      "name": "addRewards",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -173,46 +280,8 @@ export const abi = [
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_stakeholder",
-          "type": "address"
-        }
-      ],
-      "name": "calculateReward",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "_amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "claimReward",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "_stake",
-          "type": "uint256"
-        }
-      ],
-      "name": "createStake",
+      "inputs": [],
+      "name": "claim",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -255,10 +324,57 @@ export const abi = [
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "distributeRewards",
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "deposit",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "depositToken",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getFrontendView",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_rewardPerSecond",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_secondsLeft",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_deposited",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_pending",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -286,20 +402,9 @@ export const abi = [
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_address",
-          "type": "address"
-        }
-      ],
-      "name": "isStakeholder",
+      "inputs": [],
+      "name": "lastRewardTimestamp",
       "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        },
         {
           "internalType": "uint256",
           "name": "",
@@ -351,27 +456,20 @@ export const abi = [
     {
       "inputs": [
         {
-          "internalType": "uint256",
-          "name": "_stake",
-          "type": "uint256"
-        }
-      ],
-      "name": "removeStake",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "address",
-          "name": "_stakeholder",
+          "name": "_user",
           "type": "address"
         }
       ],
-      "name": "removeStakeholder",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "name": "pendingRewards",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -382,14 +480,8 @@ export const abi = [
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_stakeholder",
-          "type": "address"
-        }
-      ],
-      "name": "rewardOf",
+      "inputs": [],
+      "name": "rewardPerSecond",
       "outputs": [
         {
           "internalType": "uint256",
@@ -401,14 +493,8 @@ export const abi = [
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_stakeholder",
-          "type": "address"
-        }
-      ],
-      "name": "stakeOf",
+      "inputs": [],
+      "name": "rewardPeriodEndTimestamp",
       "outputs": [
         {
           "internalType": "uint256",
@@ -417,6 +503,26 @@ export const abi = [
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardToken",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "skim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -460,20 +566,7 @@ export const abi = [
     },
     {
       "inputs": [],
-      "name": "totalRewards",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "totalStakes",
+      "name": "totalStaked",
       "outputs": [
         {
           "internalType": "uint256",
@@ -578,22 +671,22 @@ export const abi = [
     },
     {
       "inputs": [],
-      "name": "weeksToClaim",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
+      "name": "updateRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "withdrawReward",
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     }
-  ];
+  ]
