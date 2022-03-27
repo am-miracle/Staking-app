@@ -35,8 +35,8 @@
   gap: 1em;
   display: flex;
   flex-direction: column-reverse;
-  justify-content: start;
-  align-items: start;
+  justify-content: flex-start;
+  align-items: flex-start;
   width: 100%;
 }
 .cardContainer{

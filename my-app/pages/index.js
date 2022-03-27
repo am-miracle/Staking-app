@@ -2,9 +2,10 @@
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
 import Web3Modal from "web3modal";
-import { providers, Contract } from "ethers";
 import { useEffect, useRef, useState } from "react";
 import {abi, CONTRACT_ADDRESS} from "../constants";
+import { BigNumber, Contract, providers, utils } from "ethers";
+
 
 export default function Home() {
 
@@ -20,7 +21,7 @@ export default function Home() {
     // amount of the tokens that the user wants to stake
     const [tokenStaked, setTokenStaked] = useState(0);
     // tokensMinted is the total number of tokens that have been minted till now out of 10000(max total supply)
-    // const [tokensMinted, setTokensMinted] = useState(zero);
+    const [tokensMinted, setTokensMinted] = useState(0);
     // Create a reference to the Web3 Modal (used for connecting to Metamask) which persists as long as the page is open
     const web3ModalRef = useRef();
 
@@ -58,7 +59,7 @@ export default function Home() {
       setBalanceOfToken(balance);
     } catch (err) {
       console.error(err);
-      setBalanceOfToken(zero);
+      setBalanceOfToken(0);
     }
   };
 
@@ -78,6 +79,140 @@ export default function Home() {
       setTokensStaked(_tokensMinted);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const getTotalTokensMinted = async () => {
+    try {
+      // Get the provider from web3Modal, which in our case is MetaMask
+      // No need for the Signer here, as we are only reading state from the blockchain
+      const provider = await getProviderOrSigner();
+      // Create an instance of token contract
+      const tokenContract = new Contract(
+        CONTRACT_ADDRESS,
+        abi,
+        provider
+      );
+      // Get all the tokens that have been minted
+      const _tokensMinted = await tokenContract.totalSupply();
+      setTokensMinted(_tokensMinted);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  /**
+   * mintToken: mints `amount` number of tokens to a given address
+   */
+   const mintToken = async (amount) => {
+    try {
+      // We need a Signer here since this is a 'write' transaction.
+      // Create an instance of tokenContract
+      const signer = await getProviderOrSigner(true);
+      // Create an instance of tokenContract
+      const tokenContract = new Contract(
+        CONTRACT_ADDRESS,
+        abi,
+        signer
+      );
+      // Each token is of `0.001 ether`. The value we need to send is `0.001 * amount`
+      const value = 0.001 * amount;
+      const tx = await tokenContract.mint(amount, {
+        // value signifies the cost of one crypto dev token which is "0.001" eth.
+        // We are parsing `0.001` string to ether using the utils library from ethers.js
+        value: utils.parseEther(value.toString()),
+      });
+      setLoading(true);
+      // wait for the transaction to get mined
+      await tx.wait();
+      setLoading(false);
+      window.alert("Sucessfully minted Crypto Dev Tokens");
+      await getBalanceOfUserToken();
+      await getTotalTokensMinted();
+      await getTotalTokensStaked();
+      await getTokensToBeClaimed();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /**
+   * claimCryptoDevTokens: Helps the user claim Crypto Dev Tokens
+   */
+  const claimTokens = async () => {
+    try {
+      // We need a Signer here since this is a 'write' transaction.
+      // Create an instance of tokenContract
+      const signer = await getProviderOrSigner(true);
+      // Create an instance of tokenContract
+      const tokenContract = new Contract(
+        CONTRACT_ADDRESS,
+        abi,
+        signer
+      );
+      const tx = await tokenContract.claim();
+      setLoading(true);
+      // wait for the transaction to get mined
+      await tx.wait();
+      setLoading(false);
+      window.alert("Sucessfully claimed Crypto Dev Tokens");
+      await getBalanceOfUserToken();
+      await getTotalTokensMinted();
+      await getTotalTokensStaked();
+      await getTokensToBeClaimed();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /**
+   * getTokensToBeClaimed: checks the balance of tokens that can be claimed by the user
+   */
+   const getTokensToBeClaimed = async () => {
+    try {
+      // Get the provider from web3Modal, which in our case is MetaMask
+      // No need for the Signer here, as we are only reading state from the blockchain
+      const provider = await getProviderOrSigner();
+      // Create an instance of NFT Contract
+      const nftContract = new Contract(
+        CONTRACT_ADDRESS,
+        abi,
+        provider
+      );
+      // Create an instance of tokenContract
+      const tokenContract = new Contract(
+        CONTRACT_ADDRESS,
+        abi,
+        provider
+      );
+      // We will get the signer now to extract the address of the currently connected MetaMask account
+      const signer = await getProviderOrSigner(true);
+      // Get the address associated to the signer which is connected to  MetaMask
+      const address = await signer.getAddress();
+      // call the balanceOf from the NFT contract to get the number of NFT's held by the user
+      const balance = await nftContract.balanceOf(address);
+      // balance is a Big number and thus we would compare it with Big number `zero`
+      if (balance === zero) {
+        setTokensToBeClaimed(zero);
+      } else {
+        // amount keeps track of the number of unclaimed tokens
+        var amount = 0;
+        // For all the NFT's, check if the tokens have already been claimed
+        // Only increase the amount if the tokens have not been claimed
+        // for a an NFT(for a given tokenId)
+        for (var i = 0; i < balance; i++) {
+          const tokenId = await nftContract.tokenOfOwnerByIndex(address, i);
+          const claimed = await tokenContract.tokenIdsClaimed(tokenId);
+          if (!claimed) {
+            amount++;
+          }
+        }
+        //tokensToBeClaimed has been initialized to a Big Number, thus we would convert amount
+        // to a big number and then set its value
+        setTokensToBeClaimed(BigNumber.from(amount));
+      }
+    } catch (err) {
+      console.error(err);
+      setTokensToBeClaimed(zero);
     }
   };
 
@@ -125,11 +260,11 @@ export default function Home() {
       <div className={styles.main}>
         <div className={styles.cardContainer}>
           <div className={styles.card}>
-            <h2>{balanceOfToken}</h2>
+            <h2>{utils.formatEther(balanceOfToken)}ETH</h2>
             <p className={styles.cardTitle}>Balance</p>
           </div>
           <div className={styles.card}>
-            <h2>1000ETH</h2>
+            <h2>{utils.formatEther(tokenStaked)}ETH</h2>
             <p className={styles.cardTitle}>Total Staked</p>
           </div>
         </div>
@@ -144,7 +279,7 @@ export default function Home() {
               <button type='submit'className={styles.button}>Stake</button>
             </div>
             <div className={styles.stakeContent}>
-              <input type="number" placeholder='amount to stake' className={styles.input} />
+              <input type="number" placeholder='amount to withdraw' className={styles.input} />
               <button type='submit'className={styles.button}>Unstake</button>
             </div>
           </div>
